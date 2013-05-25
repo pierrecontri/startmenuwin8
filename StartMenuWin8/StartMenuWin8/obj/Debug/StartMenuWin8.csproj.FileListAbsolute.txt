@@ -1,0 +1,12 @@
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\bin\Debug\StartMenuWin8.exe.config
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\bin\Debug\StartMenuWin8.exe
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\bin\Debug\StartMenuWin8.pdb
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\obj\Debug\MainWindow.baml
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\obj\Debug\MainWindow.g.cs
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\obj\Debug\App.g.cs
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\obj\Debug\StartMenuWin8_MarkupCompile.cache
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\obj\Debug\StartMenuWin8.g.resources
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\obj\Debug\StartMenuWin8.Properties.Resources.resources
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\obj\Debug\StartMenuWin8.csproj.GenerateResource.Cache
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\obj\Debug\StartMenuWin8.exe
+D:\Users\pierre\documents\visual studio 2012\Projects\StartMenuWin8\StartMenuWin8\obj\Debug\StartMenuWin8.pdb
