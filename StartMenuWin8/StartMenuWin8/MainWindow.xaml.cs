@@ -33,7 +33,7 @@ namespace StartMenuWin8
         public MainWindow()
         {
             InitializeComponent();
-            this.Top = System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Bottom - this.Height;
+            this.Top = System.Windows.SystemParameters.WorkArea.Bottom - this.Height;
         }
 
         private void Startup_Menu_Loaded(object sender, RoutedEventArgs e)
