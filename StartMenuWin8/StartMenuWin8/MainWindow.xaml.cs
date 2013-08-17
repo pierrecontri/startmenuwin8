@@ -15,6 +15,8 @@ using System.Text;
 using System.Diagnostics;
 using System.Drawing;
 using System.Security.Principal;
+using System.ComponentModel;
+using System.Collections;
 
 namespace StartMenuWin8
 {
@@ -23,13 +25,7 @@ namespace StartMenuWin8
     /// </summary>
     public partial class MainWindow : Window
     {
-        //private List<object> treeViewExplorer = new List<object>();
-
-        public string CurrentUserName
-        {
-            get { return System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(Environment.UserName); }
-        }
-
+        #region initialise
         public MainWindow()
         {
             InitializeComponent();
@@ -38,73 +34,146 @@ namespace StartMenuWin8
 
         private void Startup_Menu_Loaded(object sender, RoutedEventArgs e)
         {
-            string fileProfilPath = Environment.ExpandEnvironmentVariables(Constants.startMenuPath);
-            string fileCommonPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), Constants.startMenuPrograms);
-
-            string userName = CurrentUserName;
-            this.LabelUserName.Content = CurrentUserName;
-            this.GroupBoxUserFolders.Header = CurrentUserName + Constants.folderTitle;
-
+            #region StartMenu Customisation
+            string userName = this.CurrentUserName;
+            this.LabelUserName.Content = userName;
+            this.GroupBoxUserFolders.Header = userName + Constants.folderTitle;
             this.tbButtonUser.Text = userName;
-            /*
-            FillContentDirectory(fileProfilPath, TreeViewStartMenuExplorer.Items);
-            FillContentDirectory(fileCommonPath, TreeViewStartMenuExplorer.Items);
-            FillContentSubDirectory(fileProfilPath, TreeViewStartMenuExplorer.Items);
-            FillContentSubDirectory(fileCommonPath, TreeViewStartMenuExplorer.Items);
-            */
+            #endregion StartMenu Customisation
 
-            FillContentDirectory(fileProfilPath, TreeViewItemPersonnalShortcut.Items);
-            FillContentDirectory(fileCommonPath, TreeViewItemCommonShortcut.Items);
-            FillContentSubDirectory(fileProfilPath, TreeViewItemPersonnalShortcut.Items);
-            FillContentSubDirectory(fileCommonPath, TreeViewItemCommonShortcut.Items);
-            
-            //this.TreeViewStartMenuExplorer.DataContext = this.treeViewExplorer;
+            this.TreeViewStartMenuExplorer.ItemsSource = this.ContentOfStartMenu;
 
             // focus on cmd
             this.TextBoxExecute.Focus();
         }
+        #endregion initialise
 
-        void FillContentDirectory(string directoryName, ItemCollection itemColl)
+        #region HMI interact
+        private void TextBoxExecute_KeyDown(object sender, KeyEventArgs e)
         {
-            foreach (string sProg in Directory.GetFiles(directoryName))
+            TextBox txtBox = sender as TextBox;
+            if (e.Key == Key.Return)
             {
-                string sProg2 = System.IO.Path.GetFileNameWithoutExtension(sProg);
+                try
+                {
+                    ProcessStartInfo runExplorer = new ProcessStartInfo();
+                    runExplorer.FileName = txtBox.Text;
+                    runExplorer.WorkingDirectory = Environment.GetEnvironmentVariable(Environment.SpecialFolder.UserProfile.ToString());
+                    System.Diagnostics.Process.Start(runExplorer);
 
-                FileInfo fileInfo = new FileInfo(sProg);
-                if ((fileInfo.Attributes & (FileAttributes.System | FileAttributes.Hidden)) != 0)
-                    continue;
-
-                TreeViewItem item = new TreeViewItem();
-                item.Header = sProg2;
-                item.Tag = sProg;
-                item.DataContext = new TreeViewExecutable(sProg2, sProg);
-                item.Style = TryFindResource("TreeViewItemExecutable") as Style;
-                item.Selected += StartProgramEventHandler;
-                itemColl.Add(item);
-
-                //treeViewExplorer.Add(new TreeViewExecutable(sProg2, sProg));
+                    Application.Current.Shutdown();
+                }
+                catch (Exception)
+                {
+                }
+            }
+            else if ((new[] { Key.Escape, Key.LWin, Key.RWin }).Contains(e.Key))
+            {
+                Application.Current.Shutdown();
             }
         }
 
-        void FillContentSubDirectory(string directoryName, ItemCollection itemColl)
-        {
-            foreach (string s in Directory.GetDirectories(directoryName))
-            {
-                string s2 = System.IO.Path.GetFileNameWithoutExtension(s);
 
-                TreeViewItem item = new TreeViewItem();
-                item.Header = s2;
-                item.Tag = s;
-                item.DataContext = new TreeViewItemDirectoryFolder(s2, s);
-                item.Items.Add(s);
+        private void Grid_KeyDown_1(object sender, KeyEventArgs e)
+        {
+            if ((new[] { Key.Escape, Key.LWin, Key.RWin }).Contains(e.Key))
+            {
+                Application.Current.Shutdown();
+            }
+        }
+        #endregion HMI interact
+
+        #region Content Directory / SubDirectcory
+        public IList ContentOfStartMenu
+        {
+            get
+            {
+                string fileProfilPath = Environment.ExpandEnvironmentVariables(Constants.startMenuPath);
+                string fileCommonPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), Constants.startMenuPrograms);
+
+                IList itemColl = new List<TreeViewItem>();
+                this.FillContentFilesAndFolderIntoDirectory(new string[] { fileProfilPath, fileCommonPath }, itemColl);
+                return itemColl;
+            }
+        }
+
+        protected void FillContentFilesAndFolderIntoDirectory(string[] directoriesName, IList itemColl)
+        {
+            // file Part
+            directoriesName
+                .SelectMany(dirName => Directory.GetFiles(dirName).ToList<string>())
+                // filter the file system and file hidden
+                .Where(sProgInfo =>
+                    ((new FileInfo(sProgInfo)).Attributes & (FileAttributes.System | FileAttributes.Hidden)) == 0
+                        )
+                // Get the absolute name and relative name
+                .Select<string, KeyValuePair<string, string>>(str => new KeyValuePair<string, string>(str, System.IO.Path.GetFileNameWithoutExtension(str)))
+                .OrderBy(strKeyVal => strKeyVal.Value)
+                .ToList()
+                .ForEach(sProg => AppendProgrammIntoItemCollection(sProg, itemColl));
+
+            // folder part
+            directoriesName
+                .SelectMany(dirName => Directory.GetDirectories(dirName).ToList<string>())
+                // Get the absolute name and relative name
+                .Select<string, KeyValuePair<string, string>>(str => new KeyValuePair<string, string>(str, System.IO.Path.GetFileNameWithoutExtension(str)))
+                .OrderBy(strKeyVal => strKeyVal.Value)
+                .ToList()
+                .ForEach(subDirectory => AppendFolderIntoItemCollection(subDirectory, itemColl));
+        }
+
+        protected void AppendProgrammIntoItemCollection(KeyValuePair<string, string> sProg, IList itemColl)
+        {
+            // check if the itemCollection is not already present
+            if (itemColl.OfType<TreeViewItem>().Any(progExisting => progExisting.Header.Equals(sProg.Value)))
+            {
+                return;
+            }
+
+            TreeViewItem item = new TreeViewItem();
+            item.Header = sProg.Value;
+            item.Tag = sProg.Key;
+            item.DataContext = new TreeViewItemExecutable(sProg.Value, sProg.Key);
+            item.Style = TryFindResource("TreeViewItemExecutable") as Style;
+            item.Selected += StartProgramEventHandler;
+            itemColl.Add(item);
+        }
+
+        protected void AppendFolderIntoItemCollection(KeyValuePair<string, string> subDirectory, IList itemColl)
+        {
+            TreeViewItem item = null;
+
+            // check if the itemCollection is not already present
+            var itemExisting = itemColl.OfType<TreeViewItem>().Where(progExisting => progExisting.Header.Equals(subDirectory.Value));
+            // get the folder if it's already present
+            if (itemExisting.Any())
+            {
+                item = itemExisting.FirstOrDefault();
+                item.DataContext = new[] { item.DataContext as TreeViewItemFolder,
+                                                        new TreeViewItemFolder(subDirectory.Value, subDirectory.Key) };
+            }
+            else
+            {
+                item = new TreeViewItem();
+
+                item.Header = subDirectory.Value;
+                item.Tag = subDirectory.Key;
+                item.DataContext = new TreeViewItemFolder(subDirectory.Value, subDirectory.Key);
                 item.Expanded += new RoutedEventHandler(folder_Expanded);
                 item.Style = TryFindResource("TreeViewItemFolder") as Style;
-                itemColl.Add(item);
 
-                //treeViewExplorer.Add(new TreeViewItemDirectoryFolder(s2, s));
+                itemColl.Add(item);
+            }
+
+            if (item != null)
+            {
+                this.FillContentFilesAndFolderIntoDirectory(new string[] { subDirectory.Key }, item.Items);
             }
         }
 
+        #endregion Content Directory / SubDirectcory
+
+        #region User event
         void StartProgramEventHandler(object sender, RoutedEventArgs e)
         {
             string progPath = string.Empty;
@@ -136,47 +205,19 @@ namespace StartMenuWin8
                 if (item.Items.Count == 1 && item.Tag.ToString().Equals(item.Items[0]))
                 {
                     item.Items.Clear();
-                    FillContentDirectory(item.Tag.ToString(), item.Items);
-                    FillContentSubDirectory(item.Tag.ToString(), item.Items);
+                    this.FillContentFilesAndFolderIntoDirectory(new string[] { item.Tag.ToString() }, item.Items);
                 }
             }
             catch (Exception) { }
         }
-
-        private void TextBoxExecute_KeyDown(object sender, KeyEventArgs e)
-        {
-            TextBox txtBox = sender as TextBox;
-            if (e.Key == Key.Return)
-            {
-                try
-                {
-                    ProcessStartInfo runExplorer = new ProcessStartInfo();
-                    runExplorer.FileName = txtBox.Text;
-                    runExplorer.WorkingDirectory = Environment.GetEnvironmentVariable(Environment.SpecialFolder.UserProfile.ToString());
-                    System.Diagnostics.Process.Start(runExplorer);
-
-                    Application.Current.Shutdown();
-                }
-                catch (Exception)
-                {
-                }
-            }
-            else if (e.Key == Key.Escape)
-            {
-                Application.Current.Shutdown();
-            }
-        }
-
-
-        private void Grid_KeyDown_1(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape)
-            {
-                Application.Current.Shutdown();
-            }
-        }
+        #endregion User Event
 
         #region User
+        public string CurrentUserName
+        {
+            get { return System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(Environment.UserName); }
+        }
+
         private void CmdUserFolder(object sender, RoutedEventArgs e)
         {
             try

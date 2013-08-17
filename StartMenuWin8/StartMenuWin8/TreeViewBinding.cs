@@ -12,14 +12,22 @@ using System.Windows.Media.Imaging;
 
 namespace StartMenuWin8
 {
+    public enum TreeViewCategory
+    {
+        Unknown = 0,
+        Executable = 1,
+        Folder = 2
+    }
+
     public class TreeViewBinding
     {
         public string Name { get; set; }
         public string Path { get; set; }
         public ImageSource Icon { get; set; }
+        public TreeViewCategory Category { get; set; }
 
         public TreeViewBinding() { }
-        public TreeViewBinding(string name, string path) { this.Name = name; this.Path = path; }
+        public TreeViewBinding(string name, string path) { this.Name = name; this.Path = path;}
         public TreeViewBinding(string name, string path, ImageSource icon)
         {
             this.Name = name;
@@ -28,11 +36,12 @@ namespace StartMenuWin8
         }
     }
 
-    public class TreeViewItemDirectoryFolder : TreeViewBinding
+    public class TreeViewItemFolder : TreeViewBinding
     {
-        public TreeViewItemDirectoryFolder() { }
-        public TreeViewItemDirectoryFolder(string name, string path) : base(name, path)
+        public TreeViewItemFolder() { this.Category = TreeViewCategory.Folder; }
+        public TreeViewItemFolder(string name, string path) : base(name, path)
         {
+            this.Category = TreeViewCategory.Folder;
             try
             {
                 System.Drawing.Icon ico = System.Drawing.Icon.ExtractAssociatedIcon(path);
@@ -52,11 +61,12 @@ namespace StartMenuWin8
         }
     }
 
-    public class TreeViewExecutable : TreeViewBinding
+    public class TreeViewItemExecutable : TreeViewBinding
     {
-        public TreeViewExecutable() { }
-        public TreeViewExecutable(string name, string path) : base(name, path) 
+        public TreeViewItemExecutable() { this.Category = TreeViewCategory.Executable; }
+        public TreeViewItemExecutable(string name, string path) : base(name, path) 
         {
+            this.Category = TreeViewCategory.Executable;
             try
             {
                 System.Drawing.Icon ico = System.Drawing.Icon.ExtractAssociatedIcon(path);
