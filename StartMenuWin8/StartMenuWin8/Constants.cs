@@ -2,7 +2,7 @@
 
 namespace StartMenuWin8
 {
-    class Constants
+    static class Constants
     {
         public const string computerManagement = "compmgmt.msc";
         public const string startMenuPath = @"%userprofile%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs";

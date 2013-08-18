@@ -149,6 +149,7 @@ namespace StartMenuWin8
             if (itemExisting.Any())
             {
                 item = itemExisting.FirstOrDefault();
+
                 item.DataContext = new[] { item.DataContext as TreeViewItemFolder,
                                                         new TreeViewItemFolder(subDirectory.Value, subDirectory.Key) };
             }
@@ -163,11 +164,6 @@ namespace StartMenuWin8
                 item.Style = TryFindResource("TreeViewItemFolder") as Style;
 
                 itemColl.Add(item);
-            }
-
-            if (item != null)
-            {
-                this.FillContentFilesAndFolderIntoDirectory(new string[] { subDirectory.Key }, item.Items);
             }
         }
 
@@ -201,12 +197,33 @@ namespace StartMenuWin8
             try
             {
                 TreeViewItem item = (TreeViewItem)sender;
+                if (!(item.IsSelected && item.IsExpanded))
+                {
+                    return;
+                }
 
-                if (item.Items.Count == 1 && item.Tag.ToString().Equals(item.Items[0]))
+                string[] tmpPathFolders = null;
+
+                // build the content of the folder
+                // test the item.DataContext
+                // get the path of folder content
+                var dataCtx = item.DataContext;
+                if (dataCtx is TreeViewItemFolder)
+                {
+                    tmpPathFolders = new string[] { (dataCtx as TreeViewItemFolder).Path };
+                }
+                else if (dataCtx is Array)
+                {
+                    // get the many folder of the context
+                    var dataCtxArray = (dataCtx as Array).OfType<TreeViewItemFolder>();
+                    tmpPathFolders = dataCtxArray.Select(tmpTreeViewItemFolder => tmpTreeViewItemFolder.Path).ToArray();
+                }
+
+                if (tmpPathFolders != null)
                 {
                     item.Items.Clear();
-                    this.FillContentFilesAndFolderIntoDirectory(new string[] { item.Tag.ToString() }, item.Items);
-                }
+                    this.FillContentFilesAndFolderIntoDirectory(tmpPathFolders, item.Items);
+               }
             }
             catch (Exception) { }
         }
