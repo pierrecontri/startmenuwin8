@@ -5,13 +5,14 @@ namespace StartMenuWin8
     static class Constants
     {
         public const string computerManagement = "compmgmt.msc";
-        public const string startMenuPath = @"%userprofile%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs";
-        public const string commonStartMenuPath = @"%ALLUSERSPROFILE%\Microsoft\Windows\Start Menu\Programs";
+        //public const string userRootStartMenuPath = @"%userprofile%\AppData\Roaming\Microsoft\Windows\Start Menu";
+        //public const string commonProgramStartMenuPath = @"%ALLUSERSPROFILE%\Microsoft\Windows\Start Menu\Programs";
         public const string startMenuPrograms = "Programs";
         public const string deviceManagement = "devmgmt.msc";
         public const string panelConfig = @"%systemroot%\system32\control.exe";
         public const string explorer = "explorer.exe";
         public const string keyRegisterComputer = "::{20d04fe0-3aea-1069-a2d8-08002b30309d}";
+        //public static string keyRegisterComputer = Environment.SpecialFolder.MyComputer.ToString();
         public const string cmdShutdown = "shutdown";
         public const string folderTitle = "'s folders";
     }

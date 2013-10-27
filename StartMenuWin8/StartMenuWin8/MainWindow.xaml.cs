@@ -17,6 +17,8 @@ using System.Drawing;
 using System.Security.Principal;
 using System.ComponentModel;
 using System.Collections;
+using System.Text.RegularExpressions;
+using System.Reflection;
 
 namespace StartMenuWin8
 {
@@ -31,7 +33,7 @@ namespace StartMenuWin8
             InitializeComponent();
             this.Top = System.Windows.SystemParameters.WorkArea.Bottom - this.Height;
         }
-
+        
         private void Startup_Menu_Loaded(object sender, RoutedEventArgs e)
         {
             #region StartMenu Customisation
@@ -60,8 +62,6 @@ namespace StartMenuWin8
                     runExplorer.FileName = txtBox.Text;
                     runExplorer.WorkingDirectory = Environment.GetEnvironmentVariable(Environment.SpecialFolder.UserProfile.ToString());
                     System.Diagnostics.Process.Start(runExplorer);
-
-                    Application.Current.Shutdown();
                 }
                 catch (Exception)
                 {
@@ -88,11 +88,18 @@ namespace StartMenuWin8
         {
             get
             {
-                string fileProfilPath = Environment.ExpandEnvironmentVariables(Constants.startMenuPath);
-                string fileCommonPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), Constants.startMenuPrograms);
+                #region userprofile
+                string fileRootProfilPath = Environment.GetFolderPath(Environment.SpecialFolder.StartMenu);
+                string fileProfilPath = System.IO.Path.Combine(fileRootProfilPath, Constants.startMenuPrograms);
+                #endregion userprofile
+
+                #region commonprofile
+                string fileRootCommonPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu);
+                string fileCommonPath = System.IO.Path.Combine(fileRootCommonPath, Constants.startMenuPrograms);
+                #endregion commonprofile
 
                 IList itemColl = new List<TreeViewItem>();
-                this.FillContentFilesAndFolderIntoDirectory(new string[] { fileProfilPath, fileCommonPath }, itemColl);
+                this.FillContentFilesAndFolderIntoDirectory(new string[] { fileProfilPath, fileCommonPath, fileRootProfilPath, fileRootCommonPath }, itemColl);
                 return itemColl;
             }
         }
@@ -109,11 +116,19 @@ namespace StartMenuWin8
                 // Get the absolute name and relative name
                 .Select<string, KeyValuePair<string, string>>(str => new KeyValuePair<string, string>(str, System.IO.Path.GetFileNameWithoutExtension(str)))
                 .OrderBy(strKeyVal => strKeyVal.Value)
+                .Distinct()
                 .ToList()
                 .ForEach(sProg => AppendProgrammIntoItemCollection(sProg, itemColl));
 
+            // check if there is inserted a child manually
+            var filterDirectoryName = directoriesName.Where(tmpStr =>
+                                            !directoriesName.Except(new string[] { tmpStr }, StringComparer.OrdinalIgnoreCase)
+                                                .Where(tmpStr2 => Regex.IsMatch(tmpStr2, Regex.Escape(tmpStr) + ".+"))
+                                                .Any()
+                                            ).ToList();
+
             // folder part
-            directoriesName
+            filterDirectoryName
                 .SelectMany(dirName => Directory.GetDirectories(dirName).ToList<string>())
                 // Get the absolute name and relative name
                 .Select<string, KeyValuePair<string, string>>(str => new KeyValuePair<string, string>(str, System.IO.Path.GetFileNameWithoutExtension(str)))
@@ -150,8 +165,13 @@ namespace StartMenuWin8
             {
                 item = itemExisting.FirstOrDefault();
 
-                item.DataContext = new[] { item.DataContext as TreeViewItemFolder,
-                                                        new TreeViewItemFolder(subDirectory.Value, subDirectory.Key) };
+                var dataContext = item.DataContext as IList<TreeViewItemFolder>;
+                if (dataContext != null)
+                {
+                    var dataCtx = new List<TreeViewItemFolder>(dataContext);
+                    dataCtx.Add(new TreeViewItemFolder(subDirectory.Value, subDirectory.Key));
+                    item.DataContext = dataCtx;
+                }
             }
             else
             {
@@ -159,8 +179,9 @@ namespace StartMenuWin8
 
                 item.Header = subDirectory.Value;
                 item.Tag = subDirectory.Key;
-                item.DataContext = new TreeViewItemFolder(subDirectory.Value, subDirectory.Key);
+                item.DataContext = new List<TreeViewItemFolder> { new TreeViewItemFolder(subDirectory.Value, subDirectory.Key) };
                 item.Expanded += new RoutedEventHandler(folder_Expanded);
+                item.Selected += item_Selected;
                 item.Style = TryFindResource("TreeViewItemFolder") as Style;
 
                 itemColl.Add(item);
@@ -170,6 +191,11 @@ namespace StartMenuWin8
         #endregion Content Directory / SubDirectcory
 
         #region User event
+        private void MainWindow_Deactivated(object sender, EventArgs e)
+        {
+            Application.Current.Shutdown();
+        }
+
         void StartProgramEventHandler(object sender, RoutedEventArgs e)
         {
             string progPath = string.Empty;
@@ -182,9 +208,7 @@ namespace StartMenuWin8
                 ProcessStartInfo runExplorer = new ProcessStartInfo();
                 runExplorer.FileName = progPath;
                 runExplorer.WorkingDirectory = fileInfo.DirectoryName;
-                System.Diagnostics.Process.Start(runExplorer);
-
-                Application.Current.Shutdown();
+                Process.Start(runExplorer);
             }
             catch (Exception /*ex*/)
             {
@@ -192,6 +216,18 @@ namespace StartMenuWin8
             }
         }
 
+        private void item_Selected(object sender, RoutedEventArgs e)
+        {
+            var item = sender as TreeViewItem;
+            if (item != null)
+            {
+                // explore the content of folder if it is not already done
+                item.IsExpanded = !item.IsExpanded;
+                // unselect the item after browse the content
+                item.IsSelected = false;
+            }
+        }
+        
         void folder_Expanded(object sender, RoutedEventArgs e)
         {
             try
@@ -208,14 +244,10 @@ namespace StartMenuWin8
                 // test the item.DataContext
                 // get the path of folder content
                 var dataCtx = item.DataContext;
-                if (dataCtx is TreeViewItemFolder)
-                {
-                    tmpPathFolders = new string[] { (dataCtx as TreeViewItemFolder).Path };
-                }
-                else if (dataCtx is Array)
+                if (dataCtx is IList<TreeViewItemFolder>)
                 {
                     // get the many folder of the context
-                    var dataCtxArray = (dataCtx as Array).OfType<TreeViewItemFolder>();
+                    var dataCtxArray = (dataCtx as IList<TreeViewItemFolder>);
                     tmpPathFolders = dataCtxArray.Select(tmpTreeViewItemFolder => tmpTreeViewItemFolder.Path).ToArray();
                 }
 
@@ -223,7 +255,7 @@ namespace StartMenuWin8
                 {
                     item.Items.Clear();
                     this.FillContentFilesAndFolderIntoDirectory(tmpPathFolders, item.Items);
-               }
+                }
             }
             catch (Exception) { }
         }
@@ -239,8 +271,7 @@ namespace StartMenuWin8
         {
             try
             {
-                System.Diagnostics.Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-                Application.Current.Shutdown();
+                Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
             }
             catch (Exception)
             {
@@ -251,8 +282,7 @@ namespace StartMenuWin8
         {
             try
             {
-                System.Diagnostics.Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
-                Application.Current.Shutdown();
+                Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
             }
             catch (Exception)
             {
@@ -263,8 +293,7 @@ namespace StartMenuWin8
         {
             try
             {
-                System.Diagnostics.Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures));
-                Application.Current.Shutdown();
+                Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures));
             }
             catch (Exception)
             {
@@ -275,9 +304,7 @@ namespace StartMenuWin8
         {
             try
             {
-                System.Diagnostics.Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic));
-
-                Application.Current.Shutdown();
+                Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic));
             }
             catch (Exception)
             {
@@ -290,8 +317,7 @@ namespace StartMenuWin8
         {
             try
             {
-                System.Diagnostics.Process.Start(Constants.explorer, Constants.keyRegisterComputer);
-                Application.Current.Shutdown();
+                Process.Start(Constants.explorer, Constants.keyRegisterComputer);
             }
             catch (Exception)
             {
@@ -302,8 +328,7 @@ namespace StartMenuWin8
         {
             try
             {
-                System.Diagnostics.Process.Start(Environment.ExpandEnvironmentVariables(Constants.panelConfig));
-                Application.Current.Shutdown();
+                Process.Start(Environment.ExpandEnvironmentVariables(Constants.panelConfig));
             }
             catch (Exception)
             {
@@ -315,7 +340,6 @@ namespace StartMenuWin8
             try
             {
                 Process.Start(Constants.deviceManagement);
-                Application.Current.Shutdown();
             }
             catch (Exception)
             {
@@ -328,8 +352,7 @@ namespace StartMenuWin8
         {
             try
             {
-                Process.Start(Constants.cmdShutdown, StringEnumValue.GetStringValue(ShutdownParameter.Shutdown));
-                Application.Current.Shutdown();
+                StartShutDown(StringEnumValue.GetStringValue(ShutdownParameter.Shutdown));
             }
             catch (Exception)
             {
@@ -340,8 +363,7 @@ namespace StartMenuWin8
         {
             try
             {
-                Process.Start(Constants.cmdShutdown, StringEnumValue.GetStringValue(ShutdownParameter.Hibernate));
-                Application.Current.Shutdown();
+                StartShutDown(StringEnumValue.GetStringValue(ShutdownParameter.Hibernate));
             }
             catch (Exception)
             {
@@ -352,8 +374,18 @@ namespace StartMenuWin8
         {
             try
             {
-                Process.Start(Constants.cmdShutdown, StringEnumValue.GetStringValue(ShutdownParameter.Restart));
-                Application.Current.Shutdown();
+                StartShutDown(StringEnumValue.GetStringValue(ShutdownParameter.Restart));
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        private void CmdStandby(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                StartShutDown(StringEnumValue.GetStringValue(ShutdownParameter.StandBy));
             }
             catch (Exception)
             {
@@ -364,8 +396,7 @@ namespace StartMenuWin8
         {
             try
             {
-                Process.Start(Constants.cmdShutdown, StringEnumValue.GetStringValue(ShutdownParameter.LogOff));
-                Application.Current.Shutdown();
+                StartShutDown(StringEnumValue.GetStringValue(ShutdownParameter.LogOff));
             }
             catch (Exception)
             {
@@ -376,12 +407,20 @@ namespace StartMenuWin8
         {
             try
             {
-                Process.Start(Constants.cmdShutdown, StringEnumValue.GetStringValue(ShutdownParameter.ShutdownWithFasterStart));
-                Application.Current.Shutdown();
+                StartShutDown(StringEnumValue.GetStringValue(ShutdownParameter.ShutdownWithFasterStart));
             }
             catch (Exception)
             {
             }
+        }
+
+        private static void StartShutDown(string param)
+        {
+            ProcessStartInfo proc = new ProcessStartInfo();
+            proc.FileName = "cmd";
+            proc.WindowStyle = ProcessWindowStyle.Hidden;
+            proc.Arguments = "/C " + Constants.cmdShutdown + " " + param;
+            Process.Start(proc);
         }
         #endregion
     }
