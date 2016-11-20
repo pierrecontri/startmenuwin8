@@ -1,0 +1,239 @@
+﻿<Window x:Name="Startup_Menu" x:Class="StartMenuWin8.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:StartMenuWin8"
+        xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+        Loaded="Startup_Menu_Loaded"
+        Deactivated="MainWindow_Deactivated"
+        Title="Start" Height="360" Width="535" VerticalAlignment="Bottom" HorizontalAlignment="Left" Left="0"
+        ScrollViewer.HorizontalScrollBarVisibility="Auto" ShowInTaskbar="True" ResizeMode="NoResize"
+        Foreground="{DynamicResource {x:Static SystemColors.MenuTextBrushKey}}" WindowStyle="None">
+
+    <Window.Resources>
+
+        <ControlTemplate x:Key="invisibleButtonTreeViewItemTemplate" TargetType="TreeViewItem" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="19" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <!-- Make the ToggleButton invisible -->
+                <ToggleButton IsChecked="False" Visibility="Hidden" ClickMode="Press" Name="Expander" />
+                <Border BorderThickness="{TemplateBinding Border.BorderThickness}" Padding="{TemplateBinding Control.Padding}" BorderBrush="{TemplateBinding Border.BorderBrush}" Background="{TemplateBinding Panel.Background}" Name="Bd" SnapsToDevicePixels="True" Grid.Column="1">
+                    <ContentPresenter Content="{TemplateBinding HeaderedContentControl.Header}" ContentTemplate="{TemplateBinding HeaderedContentControl.HeaderTemplate}" ContentStringFormat="{TemplateBinding HeaderedItemsControl.HeaderStringFormat}" ContentSource="Header" Name="PART_Header" HorizontalAlignment="{TemplateBinding Control.HorizontalContentAlignment}" SnapsToDevicePixels="{TemplateBinding UIElement.SnapsToDevicePixels}" />
+                </Border>
+                <ItemsPresenter Name="ItemsHost" Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" />
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="TreeViewItem.IsExpanded">
+                    <Setter Property="UIElement.Visibility" TargetName="ItemsHost">
+                        <Setter.Value>
+                            <x:Static Member="Visibility.Collapsed" />
+                        </Setter.Value>
+                    </Setter>
+                    <Trigger.Value>
+                        <s:Boolean>False</s:Boolean>
+                    </Trigger.Value>
+                </Trigger>
+                <Trigger Property="ItemsControl.HasItems">
+                    <Setter Property="UIElement.Visibility" TargetName="Expander">
+                        <Setter.Value>
+                            <x:Static Member="Visibility.Hidden" />
+                        </Setter.Value>
+                    </Setter>
+                    <Trigger.Value>
+                        <s:Boolean>False</s:Boolean>
+                    </Trigger.Value>
+                </Trigger>
+                <!--<Trigger Property="UIElement.IsEnabled">
+                    <Setter Property="TextElement.Foreground">
+                        <Setter.Value>
+                            <DynamicResource ResourceKey="{x:Static SystemColors.GrayTextBrushKey}" />
+                        </Setter.Value>
+                    </Setter>
+                    <Trigger.Value>
+                        <s:Boolean>False</s:Boolean>
+                    </Trigger.Value>
+                </Trigger>-->
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style x:Key="TreeViewItemFolder" TargetType="{x:Type TreeViewItem}">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="IsExpanded" Value="False" />
+                </Trigger>
+            </Style.Triggers>
+            <Setter Property="Template" Value="{StaticResource invisibleButtonTreeViewItemTemplate}" />
+            <Setter Property="IsExpanded" Value="False"/>
+            <Setter Property="HeaderTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Name="img" Width="15" Height="15" Stretch="Uniform" Source="Pictures/folder.ico"/>
+                            <TextBlock Text="{Binding}" Margin="5,0" />
+                        </StackPanel>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TreeViewItemExecutable" TargetType="TreeViewItem">
+            <Setter Property="Control.Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TreeViewItem}">
+                        <StackPanel Orientation="Horizontal" Margin="20,0,0,0">
+                            <Image Source="{Binding Path=Icon}" Height="15" Width="15" />
+                            <TextBlock Text="{Binding Path=Name}" Margin="5,0,0,0"/>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PanelButton" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderBrush" Value="{x:Null}"/>
+            <Setter Property="FontFamily" Value="Global User Interface"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <Style x:Key="StackPanelButtonPanel" TargetType="{x:Type StackPanel}">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Width" Value="200"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="ImageButtonPanel" TargetType="{x:Type Image}">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="TextButtonPanel" TargetType="{x:Type TextBlock}">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="10,0,0,0"/>
+        </Style>
+
+        <Style TargetType="GroupBox">
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.MenuBarBrushKey}}"/>
+        </Style>
+
+        <Style TargetType="MenuItem">
+            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.MenuBarBrushKey}}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="260"/>
+            <Setter Property="Margin" Value="0,0,0,0"/>
+        </Style>
+        <Color x:Key="Color2">#FF67A7BD</Color>
+
+    </Window.Resources>
+    <Window.Background>
+        <RadialGradientBrush>
+            <GradientStop Color="Black"/>
+            <GradientStop Color="{DynamicResource Color1}" Offset="1"/>
+            <GradientStop Color="{DynamicResource Color2}" Offset="0.482"/>
+        </RadialGradientBrush>
+    </Window.Background>
+
+    <Grid Margin="0,0,0,0" HorizontalAlignment="Left" KeyDown="Grid_KeyDown_1">
+
+        <TreeView x:Name="TreeViewStartMenuExplorer" Height="320" Width="295" Margin="10,10,0,0"
+                  HorizontalAlignment="Left" VerticalAlignment="Top"
+                  VerticalContentAlignment="Top"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        </TreeView>
+
+        <TextBox Name="TextBoxExecute" HorizontalAlignment="Left" Height="19" Margin="10,335,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="295" FontFamily="Global User Interface" FontSize="14" KeyDown="TextBoxExecute_KeyDown" TabIndex="1"/>
+
+        <StackPanel Margin="310,10,10,70">
+
+            <Label Name="LabelUserName" HorizontalAlignment="Center" VerticalAlignment="Top"
+               TextBlock.TextAlignment="Center"
+               Content="User Name"
+               FontSize="24" FontFamily="Global User Interface" FontStyle="Italic" FontStretch="Expanded" />
+            <GroupBox Name="GroupBoxUserFolders" Header="User's folders" BorderBrush="{DynamicResource {x:Static SystemColors.MenuBrushKey}}">
+                <StackPanel Orientation="Vertical" VerticalAlignment="Stretch">
+                    <Button x:Name="ButtonUser" Style="{StaticResource PanelButton}" Click="CmdUserFolder">
+                        <StackPanel Style="{StaticResource StackPanelButtonPanel}" Orientation="Horizontal">
+                            <Image Source="Pictures/user.png" Style="{StaticResource ImageButtonPanel}"/>
+                            <TextBlock x:Name="tbButtonUser" Text="User" Style="{StaticResource TextButtonPanel}"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="ButtonMyDocuments" Style="{StaticResource PanelButton}" Click="CmdDocumentFolder">
+                        <StackPanel Style="{StaticResource StackPanelButtonPanel}" Orientation="Horizontal">
+                            <Image Source="Pictures/documents.png" Style="{StaticResource ImageButtonPanel}"/>
+                            <TextBlock Text="Documents" Style="{StaticResource TextButtonPanel}"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="ButtonMyPictures" Style="{StaticResource PanelButton}" Click="CmdPicturesFolder">
+                        <StackPanel Style="{StaticResource StackPanelButtonPanel}" Orientation="Horizontal">
+                            <Image Source="Pictures/pictures.ico" Style="{StaticResource ImageButtonPanel}"/>
+                            <TextBlock Text="Pictures" Style="{StaticResource TextButtonPanel}"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="ButtonMyMusic" Style="{StaticResource PanelButton}" Click="CmdMusicFolder">
+                        <StackPanel Style="{StaticResource StackPanelButtonPanel}" Orientation="Horizontal">
+                            <Image Source="Pictures/ringtones.ico"/>
+                            <TextBlock Text="Music" Style="{StaticResource TextButtonPanel}"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Computer Management" BorderBrush="{DynamicResource {x:Static SystemColors.MenuBrushKey}}">
+                <StackPanel Orientation="Vertical">
+                    <Button x:Name="ButtonComputer" Style="{StaticResource PanelButton}" Click="CmdComputer">
+                        <StackPanel Style="{StaticResource StackPanelButtonPanel}" Orientation="Horizontal">
+                            <Image Source="Pictures/computer.jpg"/>
+                            <TextBlock Text="Computer" Style="{StaticResource TextButtonPanel}"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="ButtonPanelConfig" Style="{StaticResource PanelButton}" Click="CmdPanelConfig">
+                        <StackPanel Style="{StaticResource StackPanelButtonPanel}" Orientation="Horizontal">
+                            <Image Source="Pictures/settings.png"/>
+                            <TextBlock Text="Panel Configuration" Style="{StaticResource TextButtonPanel}"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="ButtonDeviceManagemenet" Style="{StaticResource PanelButton}" Click="CmdDeviceManagemenet">
+                        <StackPanel Style="{StaticResource StackPanelButtonPanel}" Orientation="Horizontal">
+                            <Image Source="Pictures/computermanagement.png"/>
+                            <TextBlock Text="Device Management" Style="{StaticResource TextButtonPanel}"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </GroupBox>
+
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Margin="419,326,10,10">
+            <Button x:Name="ButtonShutdown" Content="Shutdown" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="83" Click="CmdShutdown"/>
+            <ComboBox x:Name="ComboBoxShutdownOptions" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="20">
+                <MenuItem Header="Log off" Click="CmdLogOff"/>
+                <MenuItem Header="Restart" Click="CmdRestart"/>
+                <MenuItem Header="Hibernate" Click="CmdHibernate"/>
+                <MenuItem Header="Standby" Click="CmdStandby"/>
+                <MenuItem Header="Shuting down with faster restart" Click="CmdShutdownWithFasterStart"/>
+            </ComboBox>
+        </StackPanel>
+    </Grid>
+</Window>
